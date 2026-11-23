@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f6f5">
+  <meta name="description" content="Find events, announcements, and community stories from the City of Greenfield.">
+  <title>CivicEvents | City of Greenfield</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            paper: "#f5f6f5",
+            ink: "#303436",
+            slate: "#687174",
+            line: "#e1e4e2",
+            moss: "#e7eee8",
+            forest: "#52675a"
+          },
+          fontFamily: {
+            sans: ["DM Sans", "sans-serif"],
+            display: ["DM Serif Display", "Georgia", "serif"]
+          },
+          boxShadow: {
+            soft: "0 12px 36px rgba(31, 39, 35, .08)"
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="min-h-screen bg-paper font-sans text-ink antialiased">
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
+  <header class="site-header sticky top-0 z-30 border-b border-line bg-white/95 backdrop-blur">
+    <div class="header-inner mx-auto flex max-w-[1440px] items-center gap-5 px-5 lg:px-8">
+      <button class="brand flex shrink-0 items-center gap-3" type="button" data-view="events" aria-label="CivicEvents home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M3 9h18M5 9v10m4-10v10m6-10v10m4-10v10M3 19h18M12 3 2 8h20L12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="font-display text-[25px] tracking-[-.04em]">CivicEvents</span>
+      </button>
+
+      <nav class="desktop-nav mx-auto flex items-center rounded-xl bg-[#f0f1f0] p-1" aria-label="Main navigation">
+        <button class="nav-link is-active" type="button" data-view="events">Events</button>
+        <button class="nav-link" type="button" data-view="announcements">Announcements</button>
+        <button class="nav-link" type="button" data-view="promos">Promos</button>
+        <span class="nav-divider" aria-hidden="true"></span>
+        <button class="nav-link" type="button" data-view="dashboard">Dashboard</button>
+        <button class="nav-link" type="button" data-view="dashboard">Admin</button>
+      </nav>
+
+      <div class="header-actions flex shrink-0 items-center gap-2">
+        <button class="icon-button" type="button" data-action="global-search" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <button class="icon-button more-button" type="button" data-action="more-menu" aria-label="More options" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>
+        </button>
+        <button class="icon-button notification-button" type="button" data-action="notifications" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="notification-count" aria-hidden="true"></span>
+        </button>
+        <button class="profile-button" type="button" data-action="profile" aria-label="Account menu">
+          <span class="avatar" id="profile-avatar">G</span>
+          <span class="profile-name" id="profile-name">Guest</span>
+          <svg class="profile-chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7.5 5 5 5-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <nav class="mobile-nav flex gap-1 overflow-x-auto px-4 pb-3 md:hidden" aria-label="Mobile main navigation">
+      <button class="nav-link is-active" type="button" data-view="events">Events</button>
+      <button class="nav-link" type="button" data-view="announcements">Announcements</button>
+      <button class="nav-link" type="button" data-view="promos">Promos</button>
+      <button class="nav-link" type="button" data-view="dashboard">Dashboard</button>
+    </nav>
+    <div class="header-popover hidden" id="header-popover" role="dialog" aria-label="Quick menu"></div>
+  </header>
+
+  <main id="main-content" class="mx-auto min-h-[65vh] max-w-[1440px] px-5 py-10 lg:px-8 lg:py-14" tabindex="-1">
+    <div id="view-root"></div>
+  </main>
+
+  <footer class="site-footer mt-8 bg-[#303638] text-white">
+    <div class="footer-main mx-auto grid max-w-[1440px] gap-10 px-5 py-12 md:grid-cols-2 lg:grid-cols-4 lg:px-8 lg:py-14">
+      <section>
+        <div class="mb-4 flex items-center gap-3">
+          <span class="brand-mark brand-mark-light" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M3 9h18M5 9v10m4-10v10m6-10v10m4-10v10M3 19h18M12 3 2 8h20L12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="font-display text-2xl">CivicEvents</span>
+        </div>
+        <p class="max-w-xs text-sm leading-6 text-white/70">Connecting residents with events, services, and stories from the City of Greenfield.</p>
+        <p class="mt-5 text-sm leading-6 text-white/75"><strong class="block text-white">City Hall</strong>100 Civic Plaza · Greenfield, GF 01001<br>(555) 010-1000</p>
+      </section>
+      <section>
+        <h2 class="footer-heading">Get help</h2>
+        <a href="#help">Help &amp; FAQ</a><a href="#contact">Contact the city</a><a href="#accessibility">Accessibility statement</a><a href="#report">Report an issue</a>
+      </section>
+      <section>
+        <h2 class="footer-heading">City services</h2>
+        <a href="#bills">Pay a bill</a><a href="#permits">Permits &amp; licenses</a><a href="#transit">Transit</a><a href="#records">Public records</a>
+      </section>
+      <section>
+        <h2 class="footer-heading">Follow the city</h2>
+        <div class="flex gap-2">
+          <a class="social-link" href="#facebook" aria-label="Facebook">f</a>
+          <a class="social-link" href="#instagram" aria-label="Instagram">ig</a>
+          <a class="social-link" href="#linkedin" aria-label="LinkedIn">in</a>
+        </div>
+      </section>
+    </div>
+    <div class="border-t border-white/15">
+      <div class="mx-auto flex max-w-[1440px] flex-col gap-3 px-5 py-5 text-xs text-white/60 sm:flex-row sm:items-center sm:justify-between lg:px-8">
+        <span>© 2025 City of Greenfield</span>
+        <div class="flex gap-5"><a href="#privacy">Privacy</a><a href="#terms">Terms</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <div id="modal-root"></div>
+  <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
