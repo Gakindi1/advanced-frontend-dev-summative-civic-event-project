@@ -8,65 +8,65 @@
 
   const eventPreviews = [
     {
-      id: "preview-riverside-market",
-      title: "Riverside Farmers Market",
-      description: "Meet local growers, bakers, and makers at our weekly open-air market.",
-      location: "Riverside Plaza",
-      starts_at: "2025-06-14T09:00:00",
-      ends_at: "2025-06-14T13:00:00",
+      id: "preview-alu-welcome-fair",
+      title: "ALU Rwanda Welcome Fair",
+      description: "Meet student clubs, campus teams, and community partners at the start-of-term fair.",
+      location: "ALU Rwanda Campus, Kigali",
+      starts_at: "2026-11-28T09:00:00",
+      ends_at: "2026-11-28T13:00:00",
       timeLabel: "9:00 AM–1:00 PM",
-      image: "https://images.unsplash.com/photo-1789675143695-41597e7d86da?auto=format&fit=crop&w=1200&q=80",
+      image: "assets/images/alu-student-meeting.jpg",
       featured: true
     },
     {
-      id: "preview-summer-concert",
-      title: "Summer Concert in the Park",
-      description: "Bring a blanket and enjoy an evening of live music with your neighbors.",
-      location: "Cedar Grove Park",
-      starts_at: "2025-06-18T18:30:00",
-      ends_at: "2025-06-18T20:30:00",
+      id: "preview-alu-leadership-talk",
+      title: "Leadership in Action Forum",
+      description: "Hear student leaders and Rwandan changemakers discuss practical leadership and impact.",
+      location: "ALU Rwanda Auditorium",
+      starts_at: "2026-12-02T18:30:00",
+      ends_at: "2026-12-02T20:30:00",
       timeLabel: "6:30–8:30 PM",
-      image: "https://images.unsplash.com/photo-1564520018910-537b326b9644?auto=format&fit=crop&w=1200&q=80"
+      image: "assets/images/alu-networking.jpg"
     },
     {
-      id: "preview-garden-workshop",
-      title: "Community Garden Workshop",
-      description: "Learn practical techniques for growing vegetables in small urban spaces.",
-      location: "Northside Library",
-      starts_at: "2025-06-22T10:00:00",
-      ends_at: "2025-06-22T11:30:00",
-      timeLabel: "10:00–11:30 AM",
-      image: "https://images.unsplash.com/photo-1777049645587-98ba4bfbe4e6?auto=format&fit=crop&w=1200&q=80"
+      id: "preview-alu-bse-hackathon",
+      title: "BSE Student Hackathon",
+      description: "Build technology solutions for real civic challenges in a team-based campus sprint.",
+      location: "ALU Rwanda Innovation Hub",
+      starts_at: "2026-12-05T10:00:00",
+      ends_at: "2026-12-05T17:30:00",
+      timeLabel: "10:00 AM–5:30 PM",
+      image: "assets/images/alu-workshop.jpg"
     },
     {
-      id: "preview-historic-tour",
-      title: "Historic District Walking Tour",
-      description: "Discover the stories and architecture that shaped our city center.",
-      location: "City Hall Steps",
-      starts_at: "2025-06-27T17:30:00",
-      ends_at: "2025-06-27T19:00:00",
-      timeLabel: "5:30–7:00 PM",
-      image: "https://images.unsplash.com/photo-1769034250772-43ac224fa852?auto=format&fit=crop&w=1200&q=80"
+      id: "preview-alu-cultural-night",
+      title: "African Cultural Showcase",
+      description: "Experience music, dance, food, fashion, and stories from across the continent.",
+      location: "ALU Rwanda Main Hall",
+      starts_at: "2026-12-11T17:30:00",
+      ends_at: "2026-12-11T21:00:00",
+      timeLabel: "5:30–9:00 PM",
+      image: "assets/images/alu-campus-life.jpg"
     },
     {
-      id: "preview-resource-fair",
-      title: "Neighborhood Resource Fair",
-      description: "Connect with city programs, nonprofits, and family services in one place.",
-      location: "Eastside Community Center",
-      starts_at: "2025-07-02T11:00:00",
-      ends_at: "2025-07-02T15:00:00",
+      id: "preview-alu-career-mixer",
+      title: "Career and Alumni Mixer",
+      description: "Connect with alumni, employers, founders, and peers across Kigali's innovation community.",
+      location: "ALU Rwanda Learning Lab",
+      starts_at: "2026-12-16T11:00:00",
+      ends_at: "2026-12-16T15:00:00",
       timeLabel: "11:00 AM–3:00 PM",
-      image: "https://images.unsplash.com/photo-1770174079619-461c19f3bf88?auto=format&fit=crop&w=1200&q=80"
+      image: "assets/images/alu-pitch-night.jpg"
     },
     {
-      id: "preview-arts-walk",
-      title: "First Friday Arts Walk",
-      description: "Explore local galleries, street performances, and late-night shops.",
-      location: "Market Street",
-      starts_at: "2025-07-05T17:00:00",
-      ends_at: "2025-07-05T21:00:00",
-      timeLabel: "5:00–9:00 PM",
-      image: "https://images.unsplash.com/photo-1777049645587-98ba4bfbe4e6?auto=format&fit=crop&w=1200&q=80"
+      id: "preview-alu-impact-showcase",
+      title: "Student Impact Showcase",
+      description: "Discover student ventures and projects creating measurable change across Africa.",
+      location: "ALU Rwanda Campus Courtyard",
+      starts_at: "2026-12-19T14:00:00",
+      ends_at: "2026-12-19T18:00:00",
+      timeLabel: "2:00–6:00 PM",
+      image: "assets/images/alu-graduation.jpg"
     }
   ];
 
@@ -237,8 +237,8 @@
     if (search && haystack.indexOf(search) === -1) return false;
     if (state.locationFilter) {
       const location = String(event.location || "").toLowerCase();
-      if (state.locationFilter === "northside" && location.indexOf("northside") === -1) return false;
-      if (state.locationFilter === "downtown" && !/(downtown|city hall|market street|riverside)/.test(location)) return false;
+      if (state.locationFilter === "auditorium" && !/(auditorium|main hall)/.test(location)) return false;
+      if (state.locationFilter === "learning" && !/(learning lab|innovation hub|courtyard)/.test(location)) return false;
     }
     if (state.dateFilter && event.starts_at) {
       const eventDate = new Date(event.starts_at);
@@ -282,7 +282,7 @@
       '<section class="filter-panel mb-8" aria-label="Event filters">' +
       '<div><label class="field-label" for="event-search">Search events</label><div class="input-wrap">' + icon("search") + '<input class="form-control" id="event-search" type="search" placeholder="Search events" value="' + escapeHtml(state.eventSearch) + '"></div></div>' +
       '<div><label class="field-label" for="date-filter">Date range</label><select class="form-control" id="date-filter"><option value="">Any date</option><option value="week"' + (state.dateFilter === "week" ? " selected" : "") + '>This week</option><option value="month"' + (state.dateFilter === "month" ? " selected" : "") + '>This month</option></select></div>' +
-      '<div><label class="field-label" for="location-filter">Location</label><select class="form-control" id="location-filter"><option value="">All locations</option><option value="downtown"' + (state.locationFilter === "downtown" ? " selected" : "") + '>Downtown</option><option value="northside"' + (state.locationFilter === "northside" ? " selected" : "") + '>Northside</option></select></div>' +
+      '<div><label class="field-label" for="location-filter">Location</label><select class="form-control" id="location-filter"><option value="">All campus locations</option><option value="auditorium"' + (state.locationFilter === "auditorium" ? " selected" : "") + '>Auditorium / Main Hall</option><option value="learning"' + (state.locationFilter === "learning" ? " selected" : "") + '>Learning / Innovation Spaces</option></select></div>' +
       '<button class="btn-quiet filter-clear" type="button" data-action="clear-filters">Clear filters</button></section>' +
       '<div class="mb-4 flex items-center justify-between"><p class="text-sm text-slate">' + (isPreview() ? "Upcoming community events" : events.length + (events.length === 1 ? " event" : " events")) + '</p><p class="text-xs text-slate">' + (isPreview() ? "Preview content" : "City of Greenfield") + "</p></div>" +
       '<div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">' + cards + "</div>" +
@@ -338,7 +338,7 @@
     const stats = values.map(function (item) {
       return '<article class="stat-card"><div class="flex items-center justify-between"><p>' + escapeHtml(item.label) + '</p><span class="text-slate">' + icon(item.iconName, "h-5 w-5") + '</span></div><strong>' + escapeHtml(item.value) + '</strong><small>' + escapeHtml(item.note) + "</small></article>";
     }).join("");
-    const bars = [["Market", 56], ["Concert", 76], ["Garden", 47], ["Tour", 62], ["Fair", 86], ["Arts", 66]].map(function (item) {
+    const bars = [["Welcome", 56], ["Forum", 76], ["Hackathon", 47], ["Culture", 62], ["Career", 86], ["Impact", 66]].map(function (item) {
       return '<div class="chart-bar-group"><span class="chart-bar" style="height:' + item[1] + '%"></span><span>' + item[0] + "</span></div>";
     }).join("");
     const adminLinks = [
@@ -357,7 +357,7 @@
       '<div class="mb-5 grid grid-cols-2 gap-3 xl:grid-cols-5">' + stats + "</div>" +
       '<div class="mb-5 grid gap-5 xl:grid-cols-[1.4fr_1fr]"><article class="dashboard-panel p-5"><div class="flex items-start justify-between"><div><p class="eyebrow !text-[10px]">Last 30 days</p><h2 class="mt-1 font-display text-2xl">Registrations by event</h2></div><select class="form-control !h-9 !w-auto !text-xs" aria-label="Chart date range"><option>Last 30 days</option><option>Last 90 days</option></select></div><div class="chart-bars mt-4" role="img" aria-label="Bar chart of registrations">' + bars + "</div></article>" +
       '<article class="dashboard-panel p-5"><div class="mb-2 flex items-center justify-between"><h2 class="font-display text-2xl">Recent activity</h2><button class="btn-quiet !min-h-8 !px-2 !text-xs" type="button" data-action="view-notifications">View all</button></div>' +
-      '<div class="activity-row"><span class="activity-dot"></span><div><p class="text-sm font-semibold">New registration</p><p class="mt-1 text-xs text-slate">Riverside Farmers Market - 4m</p></div></div><div class="activity-row"><span class="activity-dot"></span><div><p class="text-sm font-semibold">Event updated</p><p class="mt-1 text-xs text-slate">Summer Concert - 24m</p></div></div><div class="activity-row"><span class="activity-dot"></span><div><p class="text-sm font-semibold">New resident account</p><p class="mt-1 text-xs text-slate">Taylor Kim - 1h</p></div></div><div class="activity-row"><span class="activity-dot"></span><div><p class="text-sm font-semibold">Announcement published</p><p class="mt-1 text-xs text-slate">Street maintenance - 3h</p></div></div></article></div>' +
+      '<div class="activity-row"><span class="activity-dot"></span><div><p class="text-sm font-semibold">New registration</p><p class="mt-1 text-xs text-slate">ALU Rwanda Welcome Fair - 4m</p></div></div><div class="activity-row"><span class="activity-dot"></span><div><p class="text-sm font-semibold">Event updated</p><p class="mt-1 text-xs text-slate">Leadership in Action Forum - 24m</p></div></div><div class="activity-row"><span class="activity-dot"></span><div><p class="text-sm font-semibold">New student account</p><p class="mt-1 text-xs text-slate">Taylor Kim - 1h</p></div></div><div class="activity-row"><span class="activity-dot"></span><div><p class="text-sm font-semibold">Announcement published</p><p class="mt-1 text-xs text-slate">Campus maintenance - 3h</p></div></div></article></div>' +
       '<article class="dashboard-panel p-5"><div class="mb-4"><p class="eyebrow !text-[10px]">Trend</p><h2 class="mt-1 font-display text-2xl">Registrations over time</h2></div><div class="h-40 overflow-hidden rounded-lg bg-gradient-to-b from-moss/70 to-white p-3"><svg viewBox="0 0 720 140" class="h-full w-full" role="img" aria-label="Line chart showing registrations increasing over time"><path d="M0 114 C65 105, 75 82, 130 91 S195 115, 245 75 S305 68, 365 82 S430 47, 485 58 S555 41, 600 48 S660 14, 720 24" fill="none" stroke="#698171" stroke-width="3"/><path d="M0 114 C65 105, 75 82, 130 91 S195 115, 245 75 S305 68, 365 82 S430 47, 485 58 S555 41, 600 48 S660 14, 720 24 L720 140 L0 140Z" fill="url(#chart-fill)" opacity=".55"/><defs><linearGradient id="chart-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#98ae9c"/><stop offset="1" stop-color="#fff"/></linearGradient></defs></svg></div></article></div></section>';
   }
 
