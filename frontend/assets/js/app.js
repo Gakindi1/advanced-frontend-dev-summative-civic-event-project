@@ -429,7 +429,7 @@
   }
 
   function openModal(content, label) {
-    $("#modal-root").html('<div class="modal-backdrop" data-action="close-modal"><section class="modal-card" role="dialog" aria-modal="true" aria-label="' + escapeHtml(label) + '" tabindex="-1">' + content + "</section></div>");
+    $("#modal-root").html('<div class="modal-backdrop" data-modal-backdrop><section class="modal-card" role="dialog" aria-modal="true" aria-label="' + escapeHtml(label) + '" tabindex="-1">' + content + "</section></div>");
     $("body").addClass("overflow-hidden");
     $("#modal-root .modal-card").trigger("focus");
   }
@@ -806,7 +806,7 @@
     } else if (action === "my-registrations") {
       showMyRegistrations();
     } else if (action === "close-modal") {
-      if ($(event.target).closest(".modal-card").length === 0 || $(this).closest(".modal-card").length) closeModal();
+      closeModal();
     } else if (action === "auth-switch") {
       authModal($(this).data("mode"));
     } else if (action === "open-auth") {
@@ -886,6 +886,10 @@
     } else if (action === "pagination") {
       toast("More events will be available when connected to the city event feed.");
     }
+  });
+
+  $(document).on("click", "[data-modal-backdrop]", function (event) {
+    if (event.target === this) closeModal();
   });
 
   $(document).on("input", "#event-search", function () {
