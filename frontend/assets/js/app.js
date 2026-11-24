@@ -97,6 +97,33 @@
     }
   ];
 
+  const relatedVideos = [
+    {
+      id: "93nM_3SOyuw",
+      title: "ALU Rwanda Campus Tour",
+      description: "Take a look around the ALU Rwanda campus.",
+      category: "Campus tour"
+    },
+    {
+      id: "HkvoOrTyw48",
+      title: "ALU Rwanda Campus: From the Students",
+      description: "Students share what campus life is like.",
+      category: "Student stories"
+    },
+    {
+      id: "ruA5fBta6pU",
+      title: "ALU January 2026 Intake Orientation",
+      description: "Highlights from a new student intake.",
+      category: "Campus life"
+    },
+    {
+      id: "mYyVX3cm1wA",
+      title: "Experience ALU",
+      description: "An introduction to ALU's learning experience.",
+      category: "Discover ALU"
+    }
+  ];
+
   const iconPaths = {
     search: '<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/>',
     calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
@@ -314,9 +341,14 @@
         '<img class="promo-image" src="' + escapeHtml(image) + '" alt="' + escapeHtml(promo.title + " community story") + '" loading="lazy"><span class="promo-play">' + icon("play") + '</span><span class="absolute right-3 top-3 rounded bg-black/55 px-2 py-1 text-[10px] font-bold text-white">CC</span></button>' +
         '<div class="promo-copy"><h2 class="font-display text-xl">' + escapeHtml(promo.title) + '</h2><p class="mt-2 min-h-10 text-sm leading-6 text-slate">' + escapeHtml(promo.description || promo.caption_text || "A story from the Greenfield community.") + '</p><button class="btn-quiet mt-3 !px-0" type="button" data-action="watch-promo" data-id="' + escapeHtml(promo.id) + '">Watch story ' + icon("chevron") + "</button></div>" + adminActions + "</article>";
     }).join("") : '<div class="event-empty"><p class="font-display text-2xl">No community stories yet</p><p class="mt-2 text-sm text-slate">New videos will appear here.</p></div>';
+    const videoCards = relatedVideos.map(function (video) {
+        return '<article class="related-video-card"><button class="related-video-thumb" type="button" data-action="play-related-video" data-id="' + escapeHtml(video.id) + '" aria-label="Play ' + escapeHtml(video.title) + '">' +
+          '<img src="https://i.ytimg.com/vi/' + escapeHtml(video.id) + '/hqdefault.jpg" alt="" loading="lazy"><span class="related-video-play">' + icon("play") + '</span><span class="related-video-duration">YouTube</span></button>' +
+          '<div class="related-video-copy"><p class="eyebrow">' + escapeHtml(video.category) + '</p><h3>' + escapeHtml(video.title) + '</h3><p>' + escapeHtml(video.description) + '</p><button class="related-video-link" type="button" data-action="play-related-video" data-id="' + escapeHtml(video.id) + '">Watch video ' + icon("chevron") + '</button></div></article>';
+    }).join("");
     return '<section aria-labelledby="promos-title"><div class="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><p class="eyebrow">City stories</p><h1 class="page-title" id="promos-title">Community promos</h1><p class="page-subtitle">Short films about the people and places shaping our city.</p>' +
-      (isPreview() ? '<span class="preview-note mt-4">Design preview · Sample stories</span>' : "") +
-      '</div>' + (isAdmin() ? '<button class="btn-primary" type="button" data-action="create-promo">Create promo</button>' : "") + '</div><div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">' + cards + "</div></section>";
+        (isPreview() ? '<span class="preview-note mt-4">Design preview · Sample stories</span>' : "") +
+        '</div>' + (isAdmin() ? '<button class="btn-primary" type="button" data-action="create-promo">Create promo</button>' : "") + '</div><div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">' + cards + '</div><section class="related-videos" aria-labelledby="related-videos-title"><div class="related-videos-heading"><div><p class="eyebrow">From the ALU community</p><h2 id="related-videos-title">Stories from ALU Rwanda</h2><p>Campus tours, student perspectives, and moments from university life.</p></div><a href="https://www.youtube.com/@AluEducation" target="_blank" rel="noopener noreferrer">Visit ALU on YouTube ' + icon("chevron") + '</a></div><div class="related-videos-grid">' + videoCards + "</div></section></section>";
   }
 
   function statValue(path, fallback) {
@@ -709,6 +741,13 @@
     openModal('<button class="modal-close" type="button" data-action="close-modal" aria-label="Close">' + icon("close") + '</button><p class="eyebrow">Community story</p><h2 class="mt-2 font-display text-3xl">' + escapeHtml(promo.title) + '</h2><p class="mt-3 text-sm leading-6 text-slate">' + escapeHtml(promo.description || "") + "</p>" + video + transcript, "Community story");
   }
 
+  function showRelatedVideo(videoId) {
+    const video = relatedVideos.find(function (item) { return item.id === videoId; });
+    if (!video) return;
+    const player = '<div class="related-video-player"><iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(video.id) + '?autoplay=1&rel=0" title="' + escapeHtml(video.title) + '" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>';
+    openModal('<button class="modal-close" type="button" data-action="close-modal" aria-label="Close">' + icon("close") + '</button><p class="eyebrow">African Leadership University</p><h2 class="mt-2 pr-8 font-display text-3xl">' + escapeHtml(video.title) + '</h2><p class="mt-3 text-sm leading-6 text-slate">' + escapeHtml(video.description) + "</p>" + player, "ALU video: " + video.title);
+  }
+
   function renderPopover(kind) {
     const $popover = $(".header-popover");
     let content = "";
@@ -846,6 +885,8 @@
       toast("Audio playback is available for announcements loaded from the city API.");
     } else if (action === "watch-promo") {
       showPromo(String(id));
+    } else if (action === "play-related-video") {
+      showRelatedVideo(String(id));
     } else if (action === "create-event") {
       openCreateEvent();
     } else if (action === "edit-event") {

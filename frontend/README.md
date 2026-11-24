@@ -8,7 +8,7 @@ A responsive civic-events portal built with HTML, Tailwind CSS, custom CSS, and 
 - Role-aware navigation for normal users and administrators
 - Events with search, date/location filters, details, registration, and feedback
 - Audio announcements with accessible HTML5 playback
-- Video promos with captions/transcript support
+- Video promos with captions/transcript support, plus click-to-play ALU Rwanda YouTube videos
 - Notifications inbox, profile management, and administrator user controls
 - Admin event, announcement, promo, notification, and user management
 - Responsive Figma-style layouts, loading states, empty states, dialogs, and toasts
