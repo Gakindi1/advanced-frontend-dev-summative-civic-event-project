@@ -127,7 +127,12 @@
     locationFilter: "",
     adminStats: null,
     pendingEventId: null,
-    previewMode: false
+    previewMode: false,
+    loading: {},
+    users: [],
+    registrations: [],
+    feedback: [],
+    services: JSON.parse(localStorage.getItem("civicEventsServiceRequests") || "[]")
   };
 
   function readStoredObject(key) {
@@ -177,6 +182,22 @@
     const initials = name === "Guest" ? "G" : name.split(/\s+/).slice(0, 2).map(function (part) { return part.charAt(0); }).join("").toUpperCase();
     $("#profile-name").text(name);
     $("#profile-avatar").text(initials);
+  }
+
+  // ROLE GUARD: UI controls for admin-only actions are rendered only for the
+  // admin role. The backend remains the authoritative security boundary.
+  function isAdmin() {
+    return Boolean(state.user && state.user.role === "admin");
+  }
+
+  function isAuthenticated() {
+    return Boolean(state.token && state.user);
+  }
+
+  function renderSkeletonCards(count) {
+    return Array.from({ length: count }).map(function () {
+      return '<div class="event-card overflow-hidden"><div class="h-52 animate-pulse bg-[#e7eae7]"></div><div class="p-5"><div class="h-5 w-2/3 animate-pulse rounded bg-[#e7eae7]"></div><div class="mt-4 h-3 w-1/2 animate-pulse rounded bg-[#edf0ed]"></div><div class="mt-3 h-10 animate-pulse rounded bg-[#edf0ed]"></div></div></div>';
+    }).join("");
   }
 
   function isPreview() {
@@ -237,6 +258,7 @@
       : state.registeredEventIds.indexOf(String(event.id)) !== -1;
     const featured = event.featured ? '<span class="featured-tag">Featured</span>' : "";
     const eventId = escapeHtml(event.id);
+    const adminActions = isAdmin() ? '<div class="mt-2 flex gap-2"><button class="btn-quiet !min-h-8 flex-1 border border-line !text-xs" type="button" data-action="edit-event" data-id="' + eventId + '">Edit</button><button class="btn-quiet !min-h-8 flex-1 border border-line !text-xs !text-[#9a5544]" type="button" data-action="delete-event" data-id="' + eventId + '">Delete</button></div>' : "";
     return '<article class="event-card" data-event-id="' + eventId + '">' +
       '<div class="event-image-wrap"><img class="event-image" src="' + escapeHtml(eventImage(event, index)) + '" alt="' + escapeHtml(event.title + " community event") + '" loading="lazy">' +
       '<div class="date-tile"><strong>' + escapeHtml(date.day) + '</strong><span>' + escapeHtml(date.month) + "</span></div>" + featured + "</div>" +
@@ -245,12 +267,12 @@
       '<p class="event-meta">' + icon("pin") + "<span>" + escapeHtml(event.location || "Location to be announced") + "</span></p>" +
       '<p class="event-description">' + escapeHtml(event.description || "Join neighbors for a community event in Greenfield.") + "</p>" +
       '<div class="event-actions"><button class="btn-secondary" type="button" data-action="event-details" data-id="' + eventId + '">View details</button>' +
-      '<button class="' + (registered ? "btn-secondary" : "btn-primary") + '" type="button" data-action="event-register" data-id="' + eventId + '">' + (registered ? "Registered" : "Register") + "</button></div></div></article>";
+      '<button class="' + (registered ? "btn-secondary" : "btn-primary") + '" type="button" data-action="event-register" data-id="' + eventId + '">' + (registered ? "Registered" : "Register") + "</button></div>" + adminActions + "</div></article>";
   }
 
   function renderEvents() {
     const events = state.events.filter(eventMatches);
-    const cards = events.length ? events.map(renderEventCard).join("") :
+    const cards = state.loading.events ? renderSkeletonCards(6) : events.length ? events.map(renderEventCard).join("") :
       '<div class="event-empty"><p class="font-display text-2xl">No events found</p><p class="mt-2 text-sm text-slate">Try a different search or clear the filters.</p></div>';
     return '<section aria-labelledby="events-title">' +
       '<div class="mb-8 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">' +
@@ -274,11 +296,12 @@
       const date = item.created_at ? new Date(item.created_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : (item.date || "City update");
       const audio = item.audio_url ? '<audio class="announcement-audio" controls preload="none" src="' + escapeHtml(item.audio_url) + '" aria-label="Listen to ' + escapeHtml(item.title) + '"></audio>' :
         '<button class="announcement-play" type="button" data-action="play-announcement" data-id="' + escapeHtml(item.id) + '" aria-label="Listen to ' + escapeHtml(item.title) + '">' + icon("play") + "</button>";
-      return '<article class="announcement-card"><span class="announcement-icon">' + icon("audio") + '</span><div class="min-w-0 flex-1"><p class="eyebrow !text-[10px] !tracking-[.12em]">City announcement</p><h2 class="mt-1 font-display text-xl leading-tight">' + escapeHtml(item.title) + '</h2><p class="mt-2 text-xs text-slate">' + escapeHtml(item.length || "Audio update") + '<span class="mx-2 text-gray-300">·</span>' + escapeHtml(date) + "</p></div>" + audio + "</article>";
+      const adminActions = isAdmin() ? '<button class="btn-quiet !min-h-8 border border-line !text-xs" type="button" data-action="delete-announcement" data-id="' + escapeHtml(item.id) + '">Delete</button>' : "";
+      return '<article class="announcement-card"><span class="announcement-icon">' + icon("audio") + '</span><div class="min-w-0 flex-1"><p class="eyebrow !text-[10px] !tracking-[.12em]">City announcement</p><h2 class="mt-1 font-display text-xl leading-tight">' + escapeHtml(item.title) + '</h2><p class="mt-2 text-xs text-slate">' + escapeHtml(item.length || "Audio update") + '<span class="mx-2 text-gray-300">·</span>' + escapeHtml(date) + "</p></div>" + audio + adminActions + "</article>";
     }).join("") : '<div class="event-empty"><p class="font-display text-2xl">No announcements yet</p><p class="mt-2 text-sm text-slate">Check back for updates from the city.</p></div>';
-    return '<section aria-labelledby="announcements-title"><div class="mb-8"><p class="eyebrow">Listen in</p><h1 class="page-title" id="announcements-title">Announcements</h1><p class="page-subtitle">Audio updates and messages from your city.</p>' +
+    return '<section aria-labelledby="announcements-title"><div class="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><p class="eyebrow">Listen in</p><h1 class="page-title" id="announcements-title">Announcements</h1><p class="page-subtitle">Audio updates and messages from your city.</p>' +
       (isPreview() ? '<span class="preview-note mt-4">Design preview · Sample announcements</span>' : "") +
-      '</div><div class="grid gap-4">' + cards + "</div></section>";
+      '</div>' + (isAdmin() ? '<button class="btn-primary" type="button" data-action="create-announcement">Create announcement</button>' : "") + '</div><div class="grid gap-4">' + cards + "</div></section>";
   }
 
   function renderPromos() {
@@ -286,13 +309,14 @@
     const cards = promos.length ? promos.map(function (promo) {
       const preview = promoPreviews.find(function (item) { return item.id === promo.id; });
       const image = promo.thumbnail || (preview && preview.image) || promoPreviews[0].image;
+      const adminActions = isAdmin() ? '<div class="flex gap-2 border-t border-line px-4 py-3"><button class="btn-quiet !min-h-8 flex-1 border border-line !text-xs" type="button" data-action="publish-promo" data-id="' + escapeHtml(promo.id) + '">' + (promo.published === false ? "Publish" : "Unpublish") + '</button><button class="btn-quiet !min-h-8 flex-1 border border-line !text-xs !text-[#9a5544]" type="button" data-action="delete-promo" data-id="' + escapeHtml(promo.id) + '">Delete</button></div>' : "";
       return '<article class="promo-card overflow-hidden"><button class="promo-image-wrap block w-full border-0 p-0 text-left" type="button" data-action="watch-promo" data-id="' + escapeHtml(promo.id) + '" aria-label="Play ' + escapeHtml(promo.title) + '">' +
         '<img class="promo-image" src="' + escapeHtml(image) + '" alt="' + escapeHtml(promo.title + " community story") + '" loading="lazy"><span class="promo-play">' + icon("play") + '</span><span class="absolute right-3 top-3 rounded bg-black/55 px-2 py-1 text-[10px] font-bold text-white">CC</span></button>' +
-        '<div class="promo-copy"><h2 class="font-display text-xl">' + escapeHtml(promo.title) + '</h2><p class="mt-2 min-h-10 text-sm leading-6 text-slate">' + escapeHtml(promo.description || promo.caption_text || "A story from the Greenfield community.") + '</p><button class="btn-quiet mt-3 !px-0" type="button" data-action="watch-promo" data-id="' + escapeHtml(promo.id) + '">Watch story ' + icon("chevron") + "</button></div></article>";
+        '<div class="promo-copy"><h2 class="font-display text-xl">' + escapeHtml(promo.title) + '</h2><p class="mt-2 min-h-10 text-sm leading-6 text-slate">' + escapeHtml(promo.description || promo.caption_text || "A story from the Greenfield community.") + '</p><button class="btn-quiet mt-3 !px-0" type="button" data-action="watch-promo" data-id="' + escapeHtml(promo.id) + '">Watch story ' + icon("chevron") + "</button></div>" + adminActions + "</article>";
     }).join("") : '<div class="event-empty"><p class="font-display text-2xl">No community stories yet</p><p class="mt-2 text-sm text-slate">New videos will appear here.</p></div>';
-    return '<section aria-labelledby="promos-title"><div class="mb-8"><p class="eyebrow">City stories</p><h1 class="page-title" id="promos-title">Community promos</h1><p class="page-subtitle">Short films about the people and places shaping our city.</p>' +
+    return '<section aria-labelledby="promos-title"><div class="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><p class="eyebrow">City stories</p><h1 class="page-title" id="promos-title">Community promos</h1><p class="page-subtitle">Short films about the people and places shaping our city.</p>' +
       (isPreview() ? '<span class="preview-note mt-4">Design preview · Sample stories</span>' : "") +
-      '</div><div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">' + cards + "</div></section>";
+      '</div>' + (isAdmin() ? '<button class="btn-primary" type="button" data-action="create-promo">Create promo</button>' : "") + '</div><div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">' + cards + "</div></section>";
   }
 
   function statValue(path, fallback) {
@@ -322,7 +346,8 @@
       ["calendar", "Events", "events"],
       ["audio", "Announcements", "announcements"],
       ["play", "Promos", "promos"],
-      ["bell", "Notifications", "notifications"]
+      ["bell", "Notifications", "notifications"],
+      ["users", "Users", "users"]
     ].map(function (item) {
       return '<button type="button" data-view="' + item[2] + '"' + (state.view === item[2] ? ' class="is-active"' : "") + ">" + icon(item[0]) + escapeHtml(item[1]) + "</button>";
     }).join("");
@@ -340,9 +365,36 @@
     const notifications = state.notifications;
     const content = notifications.length ? '<div class="grid gap-3">' + notifications.map(function (item) {
       const date = item.created_at ? new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
-      return '<article class="announcement-card"><span class="announcement-icon">' + icon("bell") + '</span><div><h2 class="font-display text-xl">' + escapeHtml(item.title) + '</h2><p class="mt-1 text-sm leading-6 text-slate">' + escapeHtml(item.message) + '</p><p class="mt-2 text-xs text-slate">' + escapeHtml(date) + "</p></div></article>";
+      const adminDelete = isAdmin() ? '<button class="btn-quiet !min-h-8 border border-line !text-xs" type="button" data-action="delete-notification" data-id="' + escapeHtml(item.id) + '">Delete</button>' : "";
+      return '<article class="announcement-card"><span class="announcement-icon">' + icon("bell") + '</span><button class="min-w-0 flex-1 border-0 bg-transparent text-left" type="button" data-action="notification-detail" data-id="' + escapeHtml(item.id) + '"><h2 class="font-display text-xl">' + escapeHtml(item.title) + '</h2><p class="mt-1 text-sm leading-6 text-slate">' + escapeHtml(item.message) + '</p><p class="mt-2 text-xs text-slate">' + escapeHtml(date) + "</p></button>" + adminDelete + "</article>";
     }).join("") + "</div>" : '<div class="event-empty"><span class="announcement-icon mx-auto">' + icon("bell") + '</span><p class="mt-4 font-display text-2xl">Your city updates</p><p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate">' + (state.token ? "You’re all caught up. New city updates will appear here." : "Sign in to see notifications for your account. New event and announcement updates will appear here.") + "</p>" + (state.token ? "" : '<button class="btn-primary mt-5" type="button" data-action="open-auth">Sign in</button>') + "</div>";
     return '<section><div class="mb-8"><p class="eyebrow">Stay in the loop</p><h1 class="page-title">Notifications</h1><p class="page-subtitle">Updates from your city and the community.</p>' + (isPreview() ? '<span class="preview-note mt-4">Design preview</span>' : "") + '</div>' + content + "</section>";
+  }
+
+  function renderProfile() {
+    if (!isAuthenticated()) {
+      return '<section class="event-empty"><p class="font-display text-3xl">Your profile</p><p class="mt-3 text-sm text-slate">Sign in to view and update your CivicEvents profile.</p><button class="btn-primary mt-5" type="button" data-action="open-auth">Sign in</button></section>';
+    }
+    const user = state.user;
+    return '<section aria-labelledby="profile-title"><div class="mb-8"><p class="eyebrow">Account</p><h1 class="page-title" id="profile-title">My profile</h1><p class="page-subtitle">Manage your resident account information.</p></div><div class="mx-auto max-w-2xl rounded-xl border border-line bg-white p-6 shadow-soft"><div class="mb-6 flex items-center gap-4"><span class="avatar !h-14 !w-14 !text-lg">' + escapeHtml((user.full_name || "User").split(" ").map(function (part) { return part.charAt(0); }).join("").slice(0, 2).toUpperCase()) + '</span><div><p class="font-semibold">' + escapeHtml(user.full_name || "CivicEvents resident") + '</p><p class="mt-1 text-xs text-slate">' + escapeHtml(user.email || "") + '</p><span class="mt-2 inline-block rounded-full bg-moss px-2 py-1 text-[10px] font-bold uppercase text-forest">' + escapeHtml(user.role || "user") + '</span></div></div><form id="profile-form"><div class="modal-field"><label for="profile-name">Full name</label><input id="profile-name" name="full_name" value="' + escapeHtml(user.full_name || "") + '" required></div><div class="modal-field"><label for="profile-email">Email</label><input id="profile-email" name="email" type="email" value="' + escapeHtml(user.email || "") + '" required></div><p class="mt-3 text-xs leading-5 text-slate">Role and account status are managed by administrators and cannot be changed here.</p><button class="btn-primary mt-5 w-full" type="submit">Save profile</button></form></div></section>';
+  }
+
+  function renderUsers() {
+    if (!isAdmin()) {
+      return '<section class="event-empty"><p class="font-display text-3xl">Administrator access required</p><p class="mt-3 text-sm text-slate">Sign in with an administrator account to manage users.</p></section>';
+    }
+    const rows = state.users.length ? state.users.map(function (user) {
+      return '<tr class="border-t border-line"><td class="px-4 py-4"><p class="font-semibold">' + escapeHtml(user.full_name) + '</p><p class="mt-1 text-xs text-slate">' + escapeHtml(user.email) + '</p></td><td class="px-4 py-4 text-sm">' + escapeHtml(user.role) + '</td><td class="px-4 py-4"><span class="rounded-full px-2 py-1 text-xs font-bold ' + (user.is_active === false ? 'bg-[#f3e9e5] text-[#8d5544]' : 'bg-moss text-forest') + '">' + (user.is_active === false ? "Disabled" : "Active") + '</span></td><td class="px-4 py-4 text-right"><button class="btn-secondary !min-h-9 !text-xs" type="button" data-action="' + (user.is_active === false ? "enable-user" : "disable-user") + '" data-id="' + escapeHtml(user.id) + '">' + (user.is_active === false ? "Enable" : "Disable") + "</button></td></tr>";
+    }).join("") : '<tr><td colspan="4" class="px-4 py-10 text-center text-sm text-slate">No users loaded. Connect to the API to manage resident accounts.</td></tr>';
+    return '<section aria-labelledby="users-title"><div class="mb-8"><p class="eyebrow">City administration</p><h1 class="page-title" id="users-title">User management</h1><p class="page-subtitle">Enable or disable accounts. Roles remain protected and cannot be changed from this page.</p></div><div class="overflow-x-auto rounded-xl border border-line bg-white"><table class="w-full min-w-[620px] text-left"><thead><tr class="text-xs uppercase tracking-[.08em] text-slate"><th class="px-4 py-3">Resident</th><th class="px-4 py-3">Role</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">Action</th></tr></thead><tbody>' + rows + "</tbody></table></div></section>";
+  }
+
+  function renderServices() {
+    const requests = state.services;
+    const cards = requests.length ? requests.map(function (request) {
+      return '<article class="announcement-card"><span class="announcement-icon">' + icon("bell") + '</span><div class="min-w-0 flex-1"><p class="eyebrow !text-[10px]">Service request</p><h2 class="mt-1 font-display text-xl">' + escapeHtml(request.category) + '</h2><p class="mt-2 text-sm leading-6 text-slate">' + escapeHtml(request.details) + '</p><p class="mt-2 text-xs text-slate">' + escapeHtml(request.location) + ' · ' + escapeHtml(request.status || "Submitted") + '</p></div></article>';
+    }).join("") : '<div class="event-empty"><p class="font-display text-2xl">No service requests</p><p class="mt-2 text-sm text-slate">Submit a request for city help or an issue to report.</p></div>';
+    return '<section><div class="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><p class="eyebrow">City services</p><h1 class="page-title">Service requests</h1><p class="page-subtitle">Request help or report an issue to the city.</p></div><button class="btn-primary" type="button" data-action="create-service">New request</button></div><div class="grid gap-4">' + cards + '</div></section>';
   }
 
   function render() {
@@ -353,6 +405,9 @@
     else if (state.view === "announcements") html = renderAnnouncements();
     else if (state.view === "promos") html = renderPromos();
     else if (state.view === "notifications") html = renderNotifications();
+    else if (state.view === "profile") html = renderProfile();
+    else if (state.view === "users") html = renderUsers();
+    else if (state.view === "services") html = renderServices();
     else html = renderDashboard();
     $("#view-root").html(html);
   }
@@ -391,7 +446,8 @@
       (message ? '<p class="mt-3 rounded-lg bg-[#f3f5f3] px-3 py-2 text-xs text-slate">' + escapeHtml(message) + "</p>" : "") +
       '<form id="auth-form" class="mt-4" data-mode="' + (isSignup ? "signup" : "login") + '">' +
       (isSignup ? '<div class="modal-field"><label for="auth-name">Full name</label><input id="auth-name" name="full_name" autocomplete="name" required></div>' : "") +
-      '<div class="modal-field"><label for="auth-email">Email</label><input id="auth-email" name="email" type="email" autocomplete="email" required></div><div class="modal-field"><label for="auth-password">Password</label><input id="auth-password" name="password" type="password" autocomplete="' + (isSignup ? "new-password" : "current-password") + '" required' + (isSignup ? ' minlength="8"' : "") + "></div>" +
+      '<div class="modal-field"><label for="auth-email">Email</label><input id="auth-email" name="email" type="email" autocomplete="email" required></div><div class="modal-field"><label for="auth-password">Password</label><input id="auth-password" name="password" type="password" autocomplete="' + (isSignup ? "new-password" : "current-password") + '" required' + (isSignup ? ' minlength="8" pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,}" title="Use 8 characters with uppercase, lowercase, a number, and a special character."' : "") + '></div>' +
+      (isSignup ? '<div class="modal-field"><label for="auth-confirm-password">Confirm password</label><input id="auth-confirm-password" name="confirm_password" type="password" autocomplete="new-password" minlength="8" required><div id="password-strength" class="mt-2 h-1.5 overflow-hidden rounded-full bg-[#edf0ed]"><div class="h-full w-0 rounded-full bg-[#9ba99e] transition-all"></div></div><p id="password-strength-label" class="mt-1 text-xs text-slate">Use 8+ characters with mixed case, a number, and a symbol.</p></div>' : "") +
       '<button class="btn-primary mt-5 w-full" type="submit">' + (isSignup ? "Create account" : "Sign in") + '</button></form><p class="mt-4 text-center text-sm text-slate">' + (isSignup ? 'Already have an account? <button class="font-semibold text-forest underline" type="button" data-action="auth-switch" data-mode="login">Sign in</button>' : 'New to CivicEvents? <button class="font-semibold text-forest underline" type="button" data-action="auth-switch" data-mode="signup">Create an account</button>') + '</p><p class="mt-4 text-center text-[11px] leading-5 text-slate">API: ' + escapeHtml(API_BASE) + "</p>", isSignup ? "Create a CivicEvents account" : "Sign in to CivicEvents");
     const firstInput = $("#auth-email");
     if (firstInput.length) firstInput.trigger("focus");
@@ -408,11 +464,13 @@
 
   async function loadLiveContent() {
     if (!state.token || state.previewMode) return;
+    state.loading.events = true;
+    render();
     try {
       const response = await apiRequest("/api/events");
       const items = apiData(response);
       if (Array.isArray(items)) {
-        state.events = items;
+        state.events = isAdmin() ? items : items.filter(function (item) { return item.published !== false; });
         state.sources.events = "live";
         render();
         try {
@@ -428,6 +486,9 @@
       }
     } catch (error) {
       toast(error.responseJSON && error.responseJSON.message || "Could not load live events. Preview content is still available.", true);
+    } finally {
+      state.loading.events = false;
+      render();
     }
   }
 
@@ -446,18 +507,55 @@
   async function loadSectionContent(view) {
     if (!state.token || state.previewMode) return;
     const path = view === "announcements" ? "/api/announcements" : view === "promos" ? "/api/promos" : "/api/notifications";
+    state.loading[view] = true;
+    render();
     try {
       const response = await apiRequest(path);
       const items = apiData(response);
       if (Array.isArray(items)) {
-        if (view === "announcements") state.announcements = items;
-        else if (view === "promos") state.promos = items;
-        else state.notifications = items;
+        if (view === "announcements") state.announcements = isAdmin() ? items : items.filter(function (item) { return item.published !== false; });
+        else if (view === "promos") state.promos = isAdmin() ? items : items.filter(function (item) { return item.published !== false; });
+        else {
+          state.notifications = items;
+          const unread = items.filter(function (item) { return item.read !== true; }).length;
+          $(".notification-count").toggle(unread > 0).text(unread > 9 ? "9+" : String(unread));
+        }
         state.sources[view] = "live";
         render();
       }
+
     } catch (error) {
       toast(error.responseJSON && error.responseJSON.message || "Could not load live content. Preview content is still available.", true);
+    } finally {
+      state.loading[view] = false;
+      render();
+    }
+  }
+
+  async function loadUsers() {
+    if (!isAdmin() || state.previewMode) return;
+    try {
+      const response = await apiRequest("/api/users");
+      const users = apiData(response);
+      state.users = Array.isArray(users) ? users : [];
+      render();
+    } catch (error) {
+      toast(error.responseJSON && error.responseJSON.message || "Could not load users.", true);
+    }
+  }
+
+  async function loadProfile() {
+    if (!isAuthenticated() || state.previewMode) return;
+    try {
+      const response = await apiRequest("/api/users/profile/me");
+      const profile = apiData(response);
+      if (profile) {
+        state.user = $.extend({}, state.user, profile);
+        sessionStorage.setItem(USER_KEY, JSON.stringify(state.user));
+        render();
+      }
+    } catch (error) {
+      toast(error.responseJSON && error.responseJSON.message || "Could not load your profile.", true);
     }
   }
 
@@ -473,6 +571,8 @@
       if (view === "events") loadLiveContent();
       if (view === "announcements" || view === "promos" || view === "notifications") loadSectionContent(view);
       if (view === "dashboard") loadAdminStats();
+      if (view === "users") loadUsers();
+      if (view === "profile") loadProfile();
     }
     $("#main-content").trigger("focus");
   }
@@ -482,8 +582,59 @@
     if (!event) return;
     const image = eventImage(event, 0);
     const date = formatDate(event.starts_at);
+    const mapUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(event.location || "Greenfield City Hall");
+    const feedbackForm = isAuthenticated() ? '<form id="feedback-form" data-event-id="' + escapeHtml(event.id) + '" class="mt-4"><div class="modal-field"><label for="feedback-rating">Rating</label><select id="feedback-rating" name="rating" required><option value="">Choose a rating</option><option value="5">5 - Excellent</option><option value="4">4 - Good</option><option value="3">3 - Average</option><option value="2">2 - Fair</option><option value="1">1 - Poor</option></select></div><div class="modal-field"><label for="feedback-comment">Comment</label><textarea id="feedback-comment" name="comment" maxlength="500" placeholder="Share a brief experience"></textarea></div><button class="btn-primary mt-3 w-full" type="submit">Submit feedback</button></form>' : '<p class="mt-4 text-sm text-slate">Sign in to submit feedback for this event.</p>';
     openModal('<button class="modal-close" type="button" data-action="close-modal" aria-label="Close">' + icon("close") + '</button><img class="mb-5 h-48 w-full rounded-lg object-cover" src="' + escapeHtml(image) + '" alt="' + escapeHtml(event.title) + '">' +
-      '<p class="eyebrow">' + escapeHtml(date.month + " " + date.day) + '</p><h2 class="mt-2 font-display text-3xl">' + escapeHtml(event.title) + '</h2><p class="mt-4 text-sm leading-6 text-slate">' + escapeHtml(event.description || "Join neighbors for a community event in Greenfield.") + '</p><div class="mt-4 grid gap-2 text-sm text-slate"><p>' + icon("clock") + " " + escapeHtml(eventTime(event)) + '</p><p>' + icon("pin") + " " + escapeHtml(event.location || "Location to be announced") + '</p></div><button class="btn-primary mt-6 w-full" type="button" data-action="event-register" data-id="' + escapeHtml(event.id) + '">Register for this event</button>', "Event details");
+      '<p class="eyebrow">' + escapeHtml(date.month + " " + date.day) + '</p><h2 class="mt-2 font-display text-3xl">' + escapeHtml(event.title) + '</h2><p class="mt-4 text-sm leading-6 text-slate">' + escapeHtml(event.description || "Join neighbors for a community event in Greenfield.") + '</p><div class="mt-4 grid gap-2 text-sm text-slate"><p>' + icon("clock") + " " + escapeHtml(eventTime(event)) + '</p><p>' + icon("pin") + " " + escapeHtml(event.location || "Location to be announced") + ' <a class="ml-1 underline" href="' + escapeHtml(mapUrl) + '" target="_blank" rel="noopener">Map</a></p></div>' +
+      '<button class="btn-primary mt-6 w-full" type="button" data-action="event-register" data-id="' + escapeHtml(event.id) + '">' + (state.registeredEventIds.indexOf(String(event.id)) !== -1 ? "Cancel registration" : "Register for this event") + '</button>' +
+      '<section class="mt-6 border-t border-line pt-5"><h3 class="font-display text-xl">Feedback</h3><div id="event-feedback-summary" class="mt-2 text-sm text-slate">Feedback will appear here.</div>' + feedbackForm + '</section>' +
+      (isAdmin() ? '<section class="mt-6 border-t border-line pt-5"><h3 class="font-display text-xl">Registrants</h3><div id="event-registrants" class="mt-3 text-sm text-slate">Loading registrants…</div></section>' : ""), "Event details");
+    loadEventFeedback(eventId);
+    if (isAdmin()) loadEventRegistrants(eventId);
+  }
+
+  async function loadEventFeedback(eventId) {
+    if (!isAuthenticated() || state.previewMode) {
+      $("#event-feedback-summary").text(state.previewMode ? "Sample event · No submitted feedback" : "Sign in to view and submit feedback.");
+      return;
+    }
+    try {
+      const response = isAdmin()
+        ? await apiRequest("/api/event-feedback/event/" + encodeURIComponent(eventId))
+        : await apiRequest("/api/event-feedback/my-feedback");
+      let feedback = apiData(response);
+      if (!Array.isArray(feedback)) feedback = [];
+      if (!isAdmin()) feedback = feedback.filter(function (item) { return String(item.event_id) === String(eventId); });
+      if (!feedback.length) {
+        $("#event-feedback-summary").text("No feedback submitted yet.");
+      } else {
+        const average = feedback.reduce(function (sum, item) { return sum + Number(item.rating || 0); }, 0) / feedback.length;
+        const list = feedback.slice(0, 3).map(function (item) {
+          return '<p class="border-t border-line py-2"><strong>' + escapeHtml(item.rating) + '/5</strong> - ' + escapeHtml(item.comment || "No comment") + '</p>';
+        }).join("");
+        $("#event-feedback-summary").html('<strong>' + average.toFixed(1) + '/5</strong> average from ' + feedback.length + (feedback.length === 1 ? " resident" : " residents") + list);
+      }
+    } catch (error) {
+      $("#event-feedback-summary").text("Feedback could not be loaded.");
+      toast(error.responseJSON && error.responseJSON.message || "Could not load feedback.", true);
+    }
+  }
+
+  async function loadEventRegistrants(eventId) {
+    try {
+      const response = await apiRequest("/api/event-registrations/event/" + encodeURIComponent(eventId) + "/attendees");
+      const registrants = apiData(response);
+      if (!Array.isArray(registrants) || !registrants.length) {
+        $("#event-registrants").text("No registered residents.");
+        return;
+      }
+      $("#event-registrants").html('<ul class="grid gap-2">' + registrants.map(function (person) {
+        return '<li class="border-t border-line py-2"><strong>' + escapeHtml(person.full_name) + '</strong><span class="ml-2 text-xs text-slate">' + escapeHtml(person.email) + '</span></li>';
+      }).join("") + "</ul>");
+    } catch (error) {
+      $("#event-registrants").text("Registrants could not be loaded.");
+      toast(error.responseJSON && error.responseJSON.message || "Could not load registrants.", true);
+    }
   }
 
   async function registerEvent(eventId) {
@@ -551,9 +702,11 @@
   function showPromo(promoId) {
     const promo = state.promos.find(function (item) { return String(item.id) === String(promoId); });
     if (!promo) return;
-    const video = promo.video_url ? '<video class="mt-5 w-full rounded-lg bg-black" controls src="' + escapeHtml(promo.video_url) + '" poster="' + escapeHtml(promo.thumbnail || promoPreviews[0].image) + '"></video>' :
+    const track = promo.caption_url ? '<track kind="captions" srclang="en" label="English captions" src="' + escapeHtml(promo.caption_url) + '" default>' : "";
+    const video = promo.video_url ? '<video class="mt-5 w-full rounded-lg bg-black" controls preload="metadata" src="' + escapeHtml(promo.video_url) + '" poster="' + escapeHtml(promo.thumbnail || promoPreviews[0].image) + '">' + track + "<p>Your browser cannot play this video.</p></video>" :
       '<div class="mt-5 rounded-lg bg-paper p-5 text-center text-sm text-slate">Video playback is available when you’re connected to the city content library.</div>';
-    openModal('<button class="modal-close" type="button" data-action="close-modal" aria-label="Close">' + icon("close") + '</button><p class="eyebrow">Community story</p><h2 class="mt-2 font-display text-3xl">' + escapeHtml(promo.title) + '</h2><p class="mt-3 text-sm leading-6 text-slate">' + escapeHtml(promo.description || promo.caption_text || "") + "</p>" + video, "Community story");
+    const transcript = promo.caption_text ? '<details class="mt-4 rounded-lg border border-line p-3"><summary class="cursor-pointer text-sm font-semibold">Transcript / captions</summary><p class="mt-3 text-sm leading-6 text-slate">' + escapeHtml(promo.caption_text) + "</p></details>" : "";
+    openModal('<button class="modal-close" type="button" data-action="close-modal" aria-label="Close">' + icon("close") + '</button><p class="eyebrow">Community story</p><h2 class="mt-2 font-display text-3xl">' + escapeHtml(promo.title) + '</h2><p class="mt-3 text-sm leading-6 text-slate">' + escapeHtml(promo.description || "") + "</p>" + video + transcript, "Community story");
   }
 
   function renderPopover(kind) {
@@ -561,7 +714,7 @@
     let content = "";
     if (kind === "profile") {
       content = '<p class="popover-title">' + (state.user ? escapeHtml(state.user.full_name) : "Your account") + '</p>' +
-        (state.user ? '<p class="px-3 pb-2 text-xs text-slate">' + escapeHtml(state.user.email || "") + '</p><button class="menu-item" type="button" data-action="sign-out">Sign out</button>' : '<button class="menu-item" type="button" data-action="open-auth">Sign in or create an account</button>') +
+        (state.user ? '<p class="px-3 pb-2 text-xs text-slate">' + escapeHtml(state.user.email || "") + '</p><button class="menu-item" type="button" data-view="profile">My profile</button><button class="menu-item" type="button" data-action="sign-out">Sign out</button>' : '<button class="menu-item" type="button" data-action="open-auth">Sign in or create an account</button><button class="menu-item" type="button" data-view="profile">My profile</button>') +
         '<button class="menu-item" type="button" data-action="api-settings">API connection settings</button>' +
         '<button class="menu-item" type="button" data-action="switch-preview">Return to design preview</button>';
     } else if (kind === "notifications") {
@@ -584,6 +737,42 @@
     }
     openModal('<button class="modal-close" type="button" data-action="close-modal" aria-label="Close">' + icon("close") + '</button><p class="eyebrow">City admin</p><h2 class="mt-2 font-display text-3xl">Create an event</h2><form id="create-event-form" class="mt-3" enctype="multipart/form-data">' +
       '<div class="modal-field"><label for="new-event-title">Event title</label><input id="new-event-title" name="title" required></div><div class="modal-field"><label for="new-event-description">Description</label><textarea id="new-event-description" name="description"></textarea></div><div class="modal-field"><label for="new-event-location">Location</label><input id="new-event-location" name="location" required></div><div class="modal-form-row"><div class="modal-field"><label for="new-event-start">Starts</label><input id="new-event-start" name="starts_at" type="datetime-local" required></div><div class="modal-field"><label for="new-event-end">Ends</label><input id="new-event-end" name="ends_at" type="datetime-local" required></div></div><div class="modal-field"><label for="new-event-image">Event image (optional)</label><input id="new-event-image" name="image" type="file" accept="image/*"></div><button class="btn-primary mt-5 w-full" type="submit">Publish event</button></form>', "Create event");
+  }
+
+  function openAnnouncementForm() {
+    openModal('<button class="modal-close" type="button" data-action="close-modal" aria-label="Close">' + icon("close") + '</button><p class="eyebrow">City administration</p><h2 class="mt-2 font-display text-3xl">Create announcement</h2><form id="announcement-form" class="mt-3"><div class="modal-field"><label for="announcement-title">Title</label><input id="announcement-title" name="title" required></div><div class="modal-field"><label for="announcement-audio">Audio file</label><input id="announcement-audio" name="audio" type="file" accept="audio/*" required></div><div class="modal-field"><label for="announcement-published">Status</label><select id="announcement-published" name="published"><option value="true">Published</option><option value="false">Draft</option></select></div><button class="btn-primary mt-5 w-full" type="submit">Upload announcement</button></form>', "Create announcement");
+  }
+
+  function openPromoForm() {
+    openModal('<button class="modal-close" type="button" data-action="close-modal" aria-label="Close">' + icon("close") + '</button><p class="eyebrow">City administration</p><h2 class="mt-2 font-display text-3xl">Create promo</h2><form id="promo-form" class="mt-3"><div class="modal-field"><label for="promo-title">Title</label><input id="promo-title" name="title" required></div><div class="modal-field"><label for="promo-description">Description</label><textarea id="promo-description" name="description" required></textarea></div><div class="modal-field"><label for="promo-captions">Caption text</label><textarea id="promo-captions" name="caption_text" required></textarea></div><div class="modal-field"><label for="promo-video">Video file</label><input id="promo-video" name="video" type="file" accept="video/*" required></div><button class="btn-primary mt-5 w-full" type="submit">Upload promo</button></form>', "Create promo");
+  }
+
+  function openServiceForm() {
+    openModal('<button class="modal-close" type="button" data-action="close-modal" aria-label="Close">' + icon("close") + '</button><p class="eyebrow">City services</p><h2 class="mt-2 font-display text-3xl">New service request</h2><form id="service-form" class="mt-3"><div class="modal-field"><label for="service-category">Service category</label><select id="service-category" name="category" required><option value="">Choose a category</option><option>Road or sidewalk</option><option>Waste collection</option><option>Public safety</option><option>Permits and licenses</option><option>Accessibility</option><option>Other</option></select></div><div class="modal-field"><label for="service-location">Location</label><input id="service-location" name="location" required></div><div class="modal-field"><label for="service-details">Details</label><textarea id="service-details" name="details" required></textarea></div><button class="btn-primary mt-5 w-full" type="submit">Submit request</button></form>', "New service request");
+  }
+
+  function openEditEvent(eventId) {
+    if (!isAdmin()) return;
+    const event = state.events.find(function (item) { return String(item.id) === String(eventId); });
+    if (!event) return;
+    const start = event.starts_at ? new Date(event.starts_at).toISOString().slice(0, 16) : "";
+    const end = event.ends_at ? new Date(event.ends_at).toISOString().slice(0, 16) : "";
+    openModal('<button class="modal-close" type="button" data-action="close-modal" aria-label="Close">' + icon("close") + '</button><p class="eyebrow">City administration</p><h2 class="mt-2 font-display text-3xl">Edit event</h2><form id="edit-event-form" data-event-id="' + escapeHtml(eventId) + '" class="mt-3"><div class="modal-field"><label for="edit-event-title">Event title</label><input id="edit-event-title" name="title" value="' + escapeHtml(event.title) + '" required></div><div class="modal-field"><label for="edit-event-description">Description</label><textarea id="edit-event-description" name="description">' + escapeHtml(event.description || "") + '</textarea></div><div class="modal-field"><label for="edit-event-location">Location</label><input id="edit-event-location" name="location" value="' + escapeHtml(event.location || "") + '" required></div><div class="modal-form-row"><div class="modal-field"><label for="edit-event-start">Starts</label><input id="edit-event-start" name="starts_at" type="datetime-local" value="' + escapeHtml(start) + '" required></div><div class="modal-field"><label for="edit-event-end">Ends</label><input id="edit-event-end" name="ends_at" type="datetime-local" value="' + escapeHtml(end) + '" required></div></div><div class="modal-field"><label for="edit-event-image">Replace event image</label><input id="edit-event-image" name="image" type="file" accept="image/*"></div><button class="btn-primary mt-5 w-full" type="submit">Save changes</button></form>', "Edit event");
+  }
+
+  async function deleteResource(path, message) {
+    if (!isAdmin()) return;
+    if (!window.confirm(message)) return;
+    try {
+      await apiRequest(path, { method: "DELETE" });
+      toast("Deleted successfully.");
+      render();
+      if (state.view === "events") await loadLiveContent();
+      if (state.view === "announcements" || state.view === "promos") await loadSectionContent(state.view);
+      if (state.view === "notifications") await loadSectionContent("notifications");
+    } catch (error) {
+      toast(error.responseJSON && error.responseJSON.message || "Could not delete this item.", true);
+    }
   }
 
   $(document).on("click", "[data-view]", function () {
@@ -659,8 +848,41 @@
       showPromo(String(id));
     } else if (action === "create-event") {
       openCreateEvent();
+    } else if (action === "edit-event") {
+      openEditEvent(String(id));
+    } else if (action === "delete-event") {
+      deleteResource("/api/events/" + encodeURIComponent(String(id)), "Delete this event?");
+    } else if (action === "create-announcement") {
+      openAnnouncementForm();
+    } else if (action === "delete-announcement") {
+      deleteResource("/api/announcements/" + encodeURIComponent(String(id)), "Delete this announcement?");
+    } else if (action === "create-promo") {
+      openPromoForm();
+    } else if (action === "delete-promo") {
+      deleteResource("/api/promos/" + encodeURIComponent(String(id)), "Delete this promo?");
+    } else if (action === "publish-promo") {
+      const promo = state.promos.find(function (item) { return String(item.id) === String(id); });
+      if (!promo) return;
+      const published = promo.published !== false;
+      apiRequest("/api/promos/" + encodeURIComponent(String(id)) + (published ? "/unpublish" : "/publish"), { method: "PATCH" })
+        .done(function () { toast(published ? "Promo unpublished." : "Promo published."); loadSectionContent("promos"); })
+        .fail(function (error) { toast(error.responseJSON && error.responseJSON.message || "Could not update the promo.", true); });
+    } else if (action === "enable-user" || action === "disable-user") {
+      apiRequest("/api/users/" + encodeURIComponent(String(id)) + "/" + (action === "enable-user" ? "enable" : "disable"), { method: "PATCH" })
+        .done(function () { toast(action === "enable-user" ? "User enabled." : "User disabled."); loadUsers(); })
+        .fail(function (error) { toast(error.responseJSON && error.responseJSON.message || "Could not update the user.", true); });
+    } else if (action === "create-service") {
+      openServiceForm();
     } else if (action === "view-notifications") {
       goTo("notifications");
+    } else if (action === "notification-detail") {
+      const notification = state.notifications.find(function (item) { return String(item.id) === String(id); });
+      if (!notification) return;
+      const metadata = typeof notification.metadata === "string" ? safeJson(notification.metadata) : (notification.metadata || {});
+      const resourceLink = metadata.event_id ? '<button class="btn-primary mt-5 w-full" type="button" data-action="event-details" data-id="' + escapeHtml(metadata.event_id) + '">Open related event</button>' : "";
+      openModal('<button class="modal-close" type="button" data-action="close-modal" aria-label="Close">' + icon("close") + '</button><p class="eyebrow">' + escapeHtml(notification.type || "Notification") + '</p><h2 class="mt-2 font-display text-3xl">' + escapeHtml(notification.title) + '</h2><p class="mt-4 text-sm leading-7 text-slate">' + escapeHtml(notification.message) + "</p>" + resourceLink, "Notification detail");
+    } else if (action === "delete-notification") {
+      deleteResource("/api/notifications/" + encodeURIComponent(String(id)), "Delete this notification?");
     } else if (action === "pagination") {
       toast("More events will be available when connected to the city event feed.");
     }
@@ -688,6 +910,20 @@
     render();
   });
 
+  $(document).on("input", "#auth-password", function () {
+    if (!$("#password-strength").length) return;
+    const password = $(this).val();
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+    if (/\d/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+    const labels = ["Very weak", "Weak", "Fair", "Strong", "Excellent"];
+    const colors = ["#c88d7b", "#b9a36a", "#c4b66f", "#91a995", "#66816e"];
+    $("#password-strength > div").css({ width: (score * 25) + "%", "background-color": colors[score] || colors[0] });
+    $("#password-strength-label").text(labels[score] || labels[0]);
+  });
+
   $(document).on("submit", "#auth-form", async function (event) {
     event.preventDefault();
     const form = this;
@@ -696,6 +932,10 @@
     const $submit = $(form).find('[type="submit"]').prop("disabled", true).text("Please wait…");
     try {
       if (mode === "signup") {
+        if (data.password !== data.confirm_password) {
+          throw new Error("Passwords do not match.");
+        }
+        delete data.confirm_password;
         await apiRequest("/api/auth/signup", { method: "POST", contentType: "application/json", data: JSON.stringify(data) });
         authModal("login", "Account created. Sign in to continue.");
         $("#auth-email").val(data.email);
@@ -753,6 +993,102 @@
     }
   });
 
+  $(document).on("submit", "#edit-event-form", async function (event) {
+    event.preventDefault();
+    const formData = new FormData(this);
+    const eventId = $(this).data("event-id");
+    try {
+      await apiRequest("/api/events/" + encodeURIComponent(String(eventId)), { method: "PUT", data: formData, processData: false, contentType: false });
+      closeModal();
+      toast("Event updated successfully.");
+      await loadLiveContent();
+    } catch (error) {
+      toast(error.responseJSON && error.responseJSON.message || "Could not update the event.", true);
+    }
+  });
+
+  $(document).on("submit", "#announcement-form", async function (event) {
+    event.preventDefault();
+    const formData = new FormData(this);
+    const audio = formData.get("audio");
+    if (audio && audio.size > 25 * 1024 * 1024) {
+      toast("Audio files must be 25 MB or smaller.", true);
+      return;
+    }
+    try {
+      await apiRequest("/api/announcements", { method: "POST", data: formData, processData: false, contentType: false });
+      closeModal();
+      toast("Announcement uploaded successfully.");
+      await loadSectionContent("announcements");
+    } catch (error) {
+      toast(error.responseJSON && error.responseJSON.message || "Could not upload the announcement.", true);
+    }
+  });
+
+  $(document).on("submit", "#promo-form", async function (event) {
+    event.preventDefault();
+    const formData = new FormData(this);
+    const video = formData.get("video");
+    if (video && video.size > 100 * 1024 * 1024) {
+      toast("Video files must be 100 MB or smaller.", true);
+      return;
+    }
+    try {
+      await apiRequest("/api/promos", { method: "POST", data: formData, processData: false, contentType: false });
+      closeModal();
+      toast("Promo uploaded successfully.");
+      await loadSectionContent("promos");
+    } catch (error) {
+      toast(error.responseJSON && error.responseJSON.message || "Could not upload the promo.", true);
+    }
+  });
+
+  $(document).on("submit", "#service-form", function (event) {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(this).entries());
+    data.status = "Submitted";
+    data.created_at = new Date().toISOString();
+    state.services.unshift(data);
+    localStorage.setItem("civicEventsServiceRequests", JSON.stringify(state.services));
+    closeModal();
+    render();
+    toast("Service request submitted.");
+  });
+
+  $(document).on("submit", "#profile-form", async function (event) {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(this).entries());
+    try {
+      const response = await apiRequest("/api/users/profile/me", { method: "PATCH", contentType: "application/json", data: JSON.stringify(data) });
+      const profile = apiData(response);
+      if (profile) state.user = $.extend({}, state.user, profile);
+      sessionStorage.setItem(USER_KEY, JSON.stringify(state.user));
+      updateProfile();
+      toast("Profile updated successfully.");
+    } catch (error) {
+      toast(error.responseJSON && error.responseJSON.message || "Could not update your profile.", true);
+    }
+  });
+
+  $(document).on("submit", "#feedback-form", async function (event) {
+    event.preventDefault();
+    const form = this;
+    const data = Object.fromEntries(new FormData(form).entries());
+    data.event_id = $(form).data("event-id");
+    data.rating = Number(data.rating);
+    if (!data.rating || data.rating < 1 || data.rating > 5) {
+      toast("Choose a rating from 1 to 5.", true);
+      return;
+    }
+    try {
+      await apiRequest("/api/event-feedback", { method: "POST", contentType: "application/json", data: JSON.stringify(data) });
+      toast("Feedback submitted.");
+      closeModal();
+    } catch (error) {
+      toast(error.responseJSON && error.responseJSON.message || "Could not submit feedback.", true);
+    }
+  });
+
   $(document).on("click", function (event) {
     if (!$(event.target).closest(".header-actions, .header-popover").length) {
       $(".header-popover").addClass("hidden").empty();
@@ -763,6 +1099,23 @@
     if (event.key === "Escape") {
       if ($("#modal-root").children().length) closeModal();
       $(".header-popover").addClass("hidden").empty();
+    }
+  });
+
+  $(document).ajaxError(function (event, xhr) {
+    if (xhr.status === 401 && state.token) {
+      state.token = "";
+      state.previewMode = true;
+      sessionStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(USER_KEY);
+      state.user = null;
+      updateProfile();
+      toast("Your session expired. Please sign in again.", true);
+      authModal("login", "Your session expired.");
+    } else if (xhr.status === 403) {
+      toast("You do not have permission to perform this action.", true);
+    } else if (xhr.status === 0) {
+      toast("Network error. Check the backend connection and try again.", true);
     }
   });
 
