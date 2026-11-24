@@ -15,7 +15,7 @@
       starts_at: "2026-11-28T09:00:00",
       ends_at: "2026-11-28T13:00:00",
       timeLabel: "9:00 AM–1:00 PM",
-      image: "assets/images/alu-student-meeting.jpg",
+      image: "assets/images/alu-welcome-fair.jpg",
       featured: true
     },
     {
@@ -26,7 +26,7 @@
       starts_at: "2026-12-02T18:30:00",
       ends_at: "2026-12-02T20:30:00",
       timeLabel: "6:30–8:30 PM",
-      image: "assets/images/alu-networking.jpg"
+      image: "assets/images/alu-leadership-forum.jpg"
     },
     {
       id: "preview-alu-bse-hackathon",
@@ -36,7 +36,7 @@
       starts_at: "2026-12-05T10:00:00",
       ends_at: "2026-12-05T17:30:00",
       timeLabel: "10:00 AM–5:30 PM",
-      image: "assets/images/alu-workshop.jpg"
+      image: "assets/images/alu-bse-hackathon.jpg"
     },
     {
       id: "preview-alu-cultural-night",
@@ -46,7 +46,7 @@
       starts_at: "2026-12-11T17:30:00",
       ends_at: "2026-12-11T21:00:00",
       timeLabel: "5:30–9:00 PM",
-      image: "assets/images/alu-campus-life.jpg"
+      image: "assets/images/alu-cultural-showcase.jpg"
     },
     {
       id: "preview-alu-career-mixer",
@@ -56,7 +56,7 @@
       starts_at: "2026-12-16T11:00:00",
       ends_at: "2026-12-16T15:00:00",
       timeLabel: "11:00 AM–3:00 PM",
-      image: "assets/images/alu-pitch-night.jpg"
+      image: "assets/images/alu-career-mixer.jpg"
     },
     {
       id: "preview-alu-impact-showcase",
@@ -66,7 +66,7 @@
       starts_at: "2026-12-19T14:00:00",
       ends_at: "2026-12-19T18:00:00",
       timeLabel: "2:00–6:00 PM",
-      image: "assets/images/alu-graduation.jpg"
+      image: "assets/images/alu-impact-showcase.jpg"
     }
   ];
 
